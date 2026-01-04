@@ -2,14 +2,6 @@
 
 Electron tabanlı masaüstü plan yönetim uygulaması.
 
-## Özellikler
-
-- ✅ Ana menü ekranı (Home/Landing)
-- ✅ Yeni plan oluşturma
-- ✅ Plan yönetimi (aktif etme, tamamlama, silme)
-- ✅ PostgreSQL veritabanı desteği
-- ✅ Modern UI tasarımı
-
 ## Gereksinimler
 
 - Node.js (v18+)
