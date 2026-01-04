@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage UR Plan</title>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "../../node_modules/three/build/three.module.js",
+        "postprocessing": "../../node_modules/postprocessing/build/index.js",
+        "ogl": "../../node_modules/ogl/src/index.js"
+      }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .home-container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .home-title {
+            font-size: 3.5em;
+            font-weight: 700;
+            margin-bottom: 60px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-size: 1.4em;
+            font-weight: 600;
+            padding: 20px 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .menu-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateX(10px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .menu-button:hover::before {
+            left: 100%;
+        }
+
+        .menu-button:active {
+            transform: translateX(5px) scale(0.98);
+        }
+
+        .continue-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .continue-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .exit-button {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        .exit-button:hover {
+            background: rgba(220, 53, 69, 0.5);
+            border-color: rgba(220, 53, 69, 0.7);
+        }
+
+        .view-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .view-container h2 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .view-container p {
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-size: 1.1em;
+            font-weight: 600;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateX(-5px);
+        }
+
+        /* New Plan Form Styles */
+        .new-plan-container {
+            max-width: 1200px;
+            width: calc(100vw - 80px);
+            margin: 0 auto;
+            padding: 40px;
+            text-align: center;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .new-plan-container {
+                width: calc(100vw - 40px);
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .new-plan-container {
+                width: calc(100vw - 20px);
+                padding: 15px;
+            }
+        }
+
+        .view-title {
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .view-title {
+                font-size: 2em;
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .view-title {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+        }
+
+        .new-plan-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .new-plan-form {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .new-plan-form {
+                padding: 15px;
+            }
+        }
+
+        .form-pages-wrapper {
+            position: relative;
+            min-height: 500px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .form-pages-wrapper {
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-pages-wrapper {
+                min-height: 300px;
+            }
+        }
+
+        .form-pages {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .form-page {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .form-page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Side Navigation Buttons - Ekranın sağında ve solunda */
+        .side-nav-button {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-size: 2em;
+            font-weight: 600;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .side-nav-left {
+            left: 20px;
+        }
+
+        .side-nav-right {
+            right: 20px;
+        }
+
+        .side-nav-button:hover:not(.disabled) {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .side-nav-button.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .side-nav-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5em;
+            }
+
+            .side-nav-left {
+                left: 10px;
+            }
+
+            .side-nav-right {
+                right: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .side-nav-button {
+                width: 45px;
+                height: 45px;
+                font-size: 1.3em;
+            }
+
+            .side-nav-left {
+                left: 5px;
+            }
+
+            .side-nav-right {
+                right: 5px;
+            }
+        }
+
+        /* Page Indicator - Üstte gösterilecek */
+        .page-indicator-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .page-number {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .page-separator {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .page-total {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .page-title-label {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-group-half {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .required {
+            color: rgba(220, 53, 69, 0.8);
+        }
+
+        .plan-days-table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .plan-days-table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .plan-days-table-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .plan-days-table-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .plan-days-table-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .plan-days-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .plan-days-table thead {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .plan-days-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .plan-days-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .plan-days-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .plan-days-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .day-name-cell {
+            width: 120px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .day-content-cell {
+            width: auto;
+        }
+
+        .day-notes-cell {
+            width: auto;
+        }
+
+        .day-content-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.95em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 50px;
+            transition: all 0.3s ease;
+        }
+
+        .day-content-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .day-content-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .form-actions .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 2px solid rgba(220, 53, 69, 0.5);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Plan Manager Styles */
+        .plan-manager-container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .plans-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .plan-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .plan-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .plan-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .plan-card-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.active {
+            background: rgba(40, 167, 69, 0.3);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            color: #28a745;
+        }
+
+        .status-badge.completed {
+            background: rgba(108, 117, 125, 0.3);
+            border: 1px solid rgba(108, 117, 125, 0.5);
+            color: #6c757d;
+        }
+
+        .status-badge.inactive {
+            background: rgba(255, 193, 7, 0.3);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            color: #ffc107;
+        }
+
+        .plan-card-body {
+            margin-bottom: 15px;
+        }
+
+        .plan-card-info {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin: 5px 0;
+        }
+
+        .plan-card-week {
+            font-size: 1em;
+            font-weight: 500;
+            opacity: 0.9;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .plan-card-description {
+            font-size: 0.95em;
+            opacity: 0.85;
+            margin: 8px 0;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+        }
+
+        .plan-card-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .plan-action-button {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .plan-action-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .plan-action-button.activate {
+            background: rgba(40, 167, 69, 0.2);
+            border-color: rgba(40, 167, 69, 0.4);
+        }
+
+        .plan-action-button.activate:hover {
+            background: rgba(40, 167, 69, 0.3);
+        }
+
+        .plan-action-button.edit {
+            background: rgba(0, 123, 255, 0.2);
+            border-color: rgba(0, 123, 255, 0.4);
+        }
+
+        .plan-action-button.edit:hover {
+            background: rgba(0, 123, 255, 0.3);
+        }
+
+        .plan-action-button.deactivate {
+            background: rgba(255, 193, 7, 0.2);
+            border-color: rgba(255, 193, 7, 0.4);
+        }
+
+        .plan-action-button.deactivate:hover {
+            background: rgba(255, 193, 7, 0.3);
+        }
+
+        .plan-action-button.complete {
+            background: rgba(108, 117, 125, 0.2);
+            border-color: rgba(108, 117, 125, 0.4);
+        }
+
+        .plan-action-button.complete:hover {
+            background: rgba(108, 117, 125, 0.3);
+        }
+
+        .plan-action-button.delete {
+            background: rgba(220, 53, 69, 0.2);
+            border-color: rgba(220, 53, 69, 0.4);
+        }
+
+        .plan-action-button.delete:hover {
+            background: rgba(220, 53, 69, 0.3);
+        }
+
+        .plan-manager-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state p {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        /* Settings Styles */
+        .settings-container {
+            max-width: 800px;
+            width: calc(100vw - 80px);
+            margin: 0 auto;
+            padding: 40px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .settings-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            margin-top: 30px;
+        }
+
+        .settings-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .settings-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .settings-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            cursor: text;
+            -moz-appearance: textfield;
+        }
+
+        .settings-input::-webkit-inner-spin-button,
+        .settings-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-input:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .settings-description {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+
+        /* Toggle Button Styles */
+        .settings-toggle-button {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            color: #fff;
+        }
+
+        .settings-toggle-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .settings-toggle-button.active {
+            background: rgba(40, 167, 69, 0.2);
+            border-color: rgba(40, 167, 69, 0.5);
+        }
+
+        .settings-toggle-button.active:hover {
+            background: rgba(40, 167, 69, 0.3);
+            border-color: rgba(40, 167, 69, 0.6);
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            flex: 1;
+            text-align: left;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .settings-toggle-button.active .toggle-switch {
+            background: rgba(40, 167, 69, 0.5);
+            border-color: rgba(40, 167, 69, 0.7);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .settings-toggle-button.active .toggle-slider {
+            left: calc(100% - 26px);
+            background: #fff;
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .settings-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .settings-message.success {
+            background: rgba(40, 167, 69, 0.3);
+            border: 2px solid rgba(40, 167, 69, 0.5);
+            color: #fff;
+        }
+
+        .settings-message.error {
+            background: rgba(220, 53, 69, 0.3);
+            border: 2px solid rgba(220, 53, 69, 0.5);
+            color: #fff;
+        }
+
+        .settings-message.hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.3);
+            border: 2px solid rgba(220, 53, 69, 0.5);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .settings-container {
+                width: calc(100vw - 40px);
+                padding: 20px;
+            }
+
+            .settings-form {
+                padding: 20px;
+            }
+
+            .settings-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-container {
+                width: calc(100vw - 20px);
+                padding: 15px;
+            }
+
+            .settings-form {
+                padding: 15px;
+            }
+        }
+
+        /* Plan Selection Modal Styles */
+        .plan-selection-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .plan-selection-modal {
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: calc(100vw - 40px);
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .plan-selection-modal-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .plan-selection-modal-header h3 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+        }
+
+        .plan-selection-modal-body {
+            margin-bottom: 25px;
+        }
+
+        .plan-selection-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid rgba(255, 193, 7, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: #fff;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .plan-selection-instruction {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .plan-selection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .plan-selection-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .plan-selection-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .plan-selection-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .plan-selection-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .plan-selection-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateX(5px);
+        }
+
+        .plan-selection-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .plan-selection-item-info strong {
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        .plan-selection-item-week {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+        }
+
+        .plan-selection-select-btn {
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid rgba(40, 167, 69, 0.4);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .plan-selection-select-btn:hover {
+            background: rgba(40, 167, 69, 0.3);
+            border-color: rgba(40, 167, 69, 0.6);
+            transform: scale(1.05);
+        }
+
+        .plan-selection-modal-footer {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .plan-selection-cancel-btn {
+            background: rgba(220, 53, 69, 0.2);
+            border: 2px solid rgba(220, 53, 69, 0.4);
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .plan-selection-cancel-btn:hover {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: rgba(220, 53, 69, 0.6);
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .plan-selection-modal {
+                padding: 20px;
+                width: calc(100vw - 20px);
+            }
+
+            .plan-selection-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .plan-selection-select-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div style="padding: 40px; text-align: center; color: white;">
+            <h1>Yükleniyor...</h1>
+            <p>Eğer bu mesajı görüyorsanız, JavaScript henüz çalışmadı.</p>
+        </div>
+    </div>
+    <script>
+        console.log('Inline script executed');
+        console.log('app-container exists:', !!document.getElementById('app-container'));
+    </script>
+    <script type="module" src="renderer.js"></script>
+    <script>
+        console.log('After renderer.js load');
+        setTimeout(() => {
+            const container = document.getElementById('app-container');
+            console.log('Container after 1 second:', container ? container.innerHTML.substring(0, 100) : 'null');
+        }, 1000);
+    </script>
+</body>
+</html>
+

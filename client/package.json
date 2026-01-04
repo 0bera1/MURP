@@ -1,0 +1,38 @@
+{
+  "name": "manage-ur-plan",
+  "version": "1.0.0",
+  "description": "Manage UR Plan - Electron Desktop Application",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.renderer.json && npm run copy:html && npm run fix:appsettings",
+    "copy:html": "node scripts/copy-html.js",
+    "fix:appsettings": "node scripts/fix-appsettings.js",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron .",
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "electron",
+    "desktop",
+    "application"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ogl": "^1.0.11",
+    "pg": "^8.11.3",
+    "postprocessing": "^6.38.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.167.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.182.0",
+    "electron": "^28.0.0",
+    "typescript": "^5.3.0"
+  }
+}
