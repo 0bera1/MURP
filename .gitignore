@@ -5,6 +5,7 @@ client/node_modules/
 # Build outputs
 dist/
 client/dist/
+client/release/
 *.log
 
 # Environment variables
