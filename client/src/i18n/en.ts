@@ -18,7 +18,8 @@ export default {
     managePlan: "Manage / Select / Change Plan",
     errorOccurred: "An error occurred",
     unknownError: "Unknown error",
-    reloadPage: "Reload Page"
+    reloadPage: "Reload Page",
+    checkForUpdates: "Check for Updates"
   },
   newPlan: {
     title: "Create New Plan",
@@ -118,6 +119,17 @@ export default {
     friday: "Friday",
     saturday: "Saturday",
     sunday: "Sunday"
+  },
+  update: {
+    checking: "Checking for updates...",
+    available: "New update available",
+    notAvailable: "Application is up to date",
+    downloading: "Downloading update...",
+    downloaded: "Update downloaded",
+    error: "Update error",
+    installNow: "Install Now",
+    installLater: "Later",
+    restartRequired: "Application restart required to install update"
   }
 };
 

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { Plan } from '../models/Plan';
 import { PlanDay } from '../models/PlanDay';
 import { AppSettings } from '../models/AppSettings';
+import { UpdateInfo } from '../services/IAutoUpdateService';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
@@ -41,6 +42,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isFullScreen: (): Promise<boolean> => ipcRenderer.invoke('window:isFullScreen'),
     setFullScreen: (fullScreen: boolean): Promise<void> => ipcRenderer.invoke('window:setFullScreen', fullScreen),
     toggleFullScreen: (): Promise<boolean> => ipcRenderer.invoke('window:toggleFullScreen')
+  },
+  update: {
+    check: (): Promise<UpdateInfo | null> => ipcRenderer.invoke('update:check'),
+    download: (): Promise<void> => ipcRenderer.invoke('update:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('update:install'),
+    getCurrentVersion: (): Promise<string> => ipcRenderer.invoke('update:getCurrentVersion'),
+    onUpdateAvailable: (callback: (info: UpdateInfo) => void): void => {
+      ipcRenderer.on('update:available', (_event, info: UpdateInfo) => callback(info));
+    },
+    onUpdateDownloaded: (callback: () => void): void => {
+      ipcRenderer.on('update:downloaded', () => callback());
+    },
+    onUpdateError: (callback: (error: { message: string }) => void): void => {
+      ipcRenderer.on('update:error', (_event, error: { message: string }) => callback(error));
+    }
   }
 });
 

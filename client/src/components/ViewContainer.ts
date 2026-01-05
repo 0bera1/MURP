@@ -104,12 +104,20 @@ export class ViewContainer {
     this.homeComponent.render('home-view');
   }
 
+  private removeUpdateButton(): void {
+    const updateButton = document.querySelector('.update-check-button');
+    if (updateButton) {
+      updateButton.remove();
+    }
+  }
+
   private renderNewPlan(): void {
     const container = document.getElementById('app-container');
     if (!container) {
       return;
     }
 
+    this.removeUpdateButton();
     container.innerHTML = '<div id="new-plan-view"></div>';
     this.newPlanComponent.render('new-plan-view');
   }
@@ -120,6 +128,7 @@ export class ViewContainer {
       return;
     }
 
+    this.removeUpdateButton();
     container.innerHTML = '<div id="plan-editor-view"></div>';
     // planId varsa kullan, yoksa undefined geç (component kendi planId'sini koruyacak)
     this.planEditorComponent.render('plan-editor-view', this.currentPlanId);
@@ -131,6 +140,7 @@ export class ViewContainer {
       return;
     }
 
+    this.removeUpdateButton();
     container.innerHTML = '<div id="plan-manager-view"></div>';
     this.planManagerComponent.render('plan-manager-view');
   }
@@ -141,6 +151,7 @@ export class ViewContainer {
       return;
     }
 
+    this.removeUpdateButton();
     container.innerHTML = '<div id="settings-view"></div>';
     this.settingsComponent.render('settings-view');
   }

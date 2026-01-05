@@ -2,19 +2,23 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { WindowManager } from './core/WindowManager';
 import { DatabaseConnection } from './database/DatabaseConnection';
 import { PlanServiceManager } from './services/PlanServiceManager';
+import { AutoUpdateService } from './services/AutoUpdateService';
 import { Plan } from './models/Plan';
 import { PlanDay } from './models/PlanDay';
 import { AppSettings } from './models/AppSettings';
+import { UpdateInfo } from './services/IAutoUpdateService';
 
 class MainApplication {
   private windowManager: WindowManager;
   private databaseConnection: DatabaseConnection;
   private planServiceManager: PlanServiceManager;
+  private autoUpdateService: AutoUpdateService;
 
   constructor() {
     this.windowManager = new WindowManager();
     this.databaseConnection = new DatabaseConnection();
     this.planServiceManager = new PlanServiceManager(this.databaseConnection);
+    this.autoUpdateService = new AutoUpdateService();
   }
 
   public async initialize(): Promise<void> {
@@ -211,6 +215,60 @@ class MainApplication {
     ipcMain.handle('settings:setLanguage', async (_event, language: string): Promise<void> => {
       const settingsService = this.planServiceManager.getSettingsService();
       await settingsService.setLanguage(language as 'en' | 'tr');
+    });
+
+    // Update operations
+    ipcMain.handle('update:check', async (): Promise<UpdateInfo | null> => {
+      try {
+        return await this.autoUpdateService.checkForUpdates();
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('update:download', async (): Promise<void> => {
+      try {
+        await this.autoUpdateService.downloadUpdate();
+      } catch (error) {
+        console.error('Error downloading update:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('update:install', async (): Promise<void> => {
+      try {
+        await this.autoUpdateService.installUpdate();
+      } catch (error) {
+        console.error('Error installing update:', error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('update:getCurrentVersion', async (): Promise<string> => {
+      return this.autoUpdateService.getCurrentVersion();
+    });
+
+    // Update event listeners
+    this.autoUpdateService.onUpdateAvailable((info: UpdateInfo) => {
+      const mainWindow = this.windowManager.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('update:available', info);
+      }
+    });
+
+    this.autoUpdateService.onUpdateDownloaded(() => {
+      const mainWindow = this.windowManager.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('update:downloaded');
+      }
+    });
+
+    this.autoUpdateService.onUpdateError((error: Error) => {
+      const mainWindow = this.windowManager.getMainWindow();
+      if (mainWindow) {
+        mainWindow.webContents.send('update:error', { message: error.message });
+      }
     });
   }
 }

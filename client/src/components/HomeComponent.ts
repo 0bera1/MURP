@@ -110,6 +110,7 @@ export class HomeComponent {
         this.containerElement.innerHTML = html;
         this.lastRenderedHTML = html;
         this.attachEventListeners();
+        this.attachUpdateButton();
       } else {
       }
     } catch (error) {
@@ -241,8 +242,31 @@ export class HomeComponent {
       case 'exit':
         this.handleExit();
         break;
+      case 'checkUpdate':
+        this.handleCheckUpdate();
+        break;
       default:
         console.warn(`Unknown action: ${action}`);
+    }
+  }
+
+  private async handleCheckUpdate(): Promise<void> {
+    if (!window.electronAPI || !window.electronAPI.update) {
+      console.error('Update API not available');
+      return;
+    }
+
+    try {
+      const updateInfo = await window.electronAPI.update.check();
+      if (updateInfo) {
+        const message = `${this.i18n.t('update.available')}: v${updateInfo.version}`;
+        alert(message);
+      } else {
+        alert(this.i18n.t('update.notAvailable'));
+      }
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      alert(`${this.i18n.t('update.error')}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -252,6 +276,29 @@ export class HomeComponent {
     } else {
       window.close();
     }
+  }
+
+  private attachUpdateButton(): void {
+    // Mevcut butonu kaldır (varsa)
+    const existingButton = document.querySelector('.update-check-button');
+    if (existingButton) {
+      existingButton.remove();
+    }
+
+    // Yeni butonu body'ye ekle
+    const updateButton = document.createElement('button');
+    updateButton.className = 'update-check-button';
+    updateButton.setAttribute('data-action', 'checkUpdate');
+    updateButton.setAttribute('title', this.i18n.t('home.checkForUpdates'));
+    updateButton.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+    `;
+    updateButton.addEventListener('click', () => {
+      this.handleCheckUpdate();
+    });
+    document.body.appendChild(updateButton);
   }
 }
 

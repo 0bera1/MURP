@@ -43,6 +43,16 @@ interface ElectronWindowAPI {
   toggleFullScreen: () => Promise<boolean>;
 }
 
+interface ElectronUpdateAPI {
+  check: () => Promise<{ version: string; releaseDate: string; releaseNotes?: string } | null>;
+  download: () => Promise<void>;
+  install: () => Promise<void>;
+  getCurrentVersion: () => Promise<string>;
+  onUpdateAvailable: (callback: (info: { version: string; releaseDate: string; releaseNotes?: string }) => void) => void;
+  onUpdateDownloaded: (callback: () => void) => void;
+  onUpdateError: (callback: (error: { message: string }) => void) => void;
+}
+
 interface ElectronAPI {
   platform: string;
   exit?: () => void;
@@ -50,6 +60,7 @@ interface ElectronAPI {
   planDays?: ElectronPlanDaysAPI;
   settings?: ElectronSettingsAPI;
   window?: ElectronWindowAPI;
+  update?: ElectronUpdateAPI;
 }
 
 declare global {

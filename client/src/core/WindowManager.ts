@@ -15,11 +15,17 @@ export class WindowManager {
       return this.mainWindow;
     }
 
+    // Icon dosya yolu
+    const iconPath = process.platform === 'win32' 
+      ? path.join(__dirname, '../murpicon.svg')
+      : path.join(__dirname, '../murpicon.svg');
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       frame: true, // Pencere çerçevesi
       autoHideMenuBar: true, // Menü çubuğunu gizle
+      icon: iconPath, // App icon
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,

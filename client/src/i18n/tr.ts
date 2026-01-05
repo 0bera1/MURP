@@ -18,7 +18,8 @@ export default {
     managePlan: "Plan Yönetimi",
     errorOccurred: "Hata Oluştu",
     unknownError: "Bilinmeyen hata",
-    reloadPage: "Yeniden Yükle"
+    reloadPage: "Yeniden Yükle",
+    checkForUpdates: "Güncellemeleri Kontrol Et"
   },
   newPlan: {
     title: "Yeni Plan Oluştur",
@@ -118,6 +119,17 @@ export default {
     friday: "Cuma",
     saturday: "Cumartesi",
     sunday: "Pazar"
+  },
+  update: {
+    checking: "Güncellemeler kontrol ediliyor...",
+    available: "Yeni güncelleme mevcut",
+    notAvailable: "Uygulama güncel",
+    downloading: "Güncelleme indiriliyor...",
+    downloaded: "Güncelleme indirildi",
+    error: "Güncelleme hatası",
+    installNow: "Şimdi Yükle",
+    installLater: "Daha Sonra",
+    restartRequired: "Güncellemeyi yüklemek için uygulamanın yeniden başlatılması gerekiyor"
   }
 };
 
