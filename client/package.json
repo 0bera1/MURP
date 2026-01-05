@@ -7,6 +7,8 @@
     "build": "tsc && tsc -p tsconfig.renderer.json && npm run copy:html && npm run fix:appsettings",
     "copy:html": "node scripts/copy-html.js",
     "fix:appsettings": "node scripts/fix-appsettings.js",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "db:path": "node scripts/show-db-path.js",
     "start": "npm run build && electron .",
     "dev": "npm run build && electron .",
     "watch": "tsc --watch"
@@ -19,16 +21,17 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^11.6.0",
     "ogl": "^1.0.11",
-    "pg": "^8.11.3",
     "postprocessing": "^6.38.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.167.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^20.10.0",
-    "@types/pg": "^8.10.9",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/three": "^0.182.0",

@@ -1,7 +1,7 @@
 import { PlanDay } from '../models/PlanDay';
 import { IPlanDayService } from './IPlanDayService';
 import { IPlanDayRepository } from '../repositories/IPlanDayRepository';
-import { PostgreSQLPlanDayRepository } from '../repositories/PostgreSQLPlanDayRepository';
+import { SQLitePlanDayRepository } from '../repositories/SQLitePlanDayRepository';
 import { IDatabaseConnection } from '../database/IDatabaseConnection';
 import { DatabaseConnection } from '../database/DatabaseConnection';
 
@@ -11,7 +11,7 @@ export class PlanDayService implements IPlanDayService {
 
   constructor(repository?: IPlanDayRepository, databaseConnection?: IDatabaseConnection) {
     this.databaseConnection = databaseConnection || new DatabaseConnection();
-    this.repository = repository || new PostgreSQLPlanDayRepository(this.databaseConnection);
+    this.repository = repository || new SQLitePlanDayRepository(this.databaseConnection);
   }
 
   public async getByPlanId(planId: string): Promise<PlanDay[]> {

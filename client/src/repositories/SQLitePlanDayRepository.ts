@@ -2,20 +2,36 @@ import { PlanDay } from '../models/PlanDay';
 import { IPlanDayRepository } from './IPlanDayRepository';
 import { IDatabaseConnection } from '../database/IDatabaseConnection';
 
-export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
+export class SQLitePlanDayRepository implements IPlanDayRepository {
   private readonly databaseConnection: IDatabaseConnection;
 
   constructor(databaseConnection: IDatabaseConnection) {
     this.databaseConnection = databaseConnection;
   }
 
-  public async getByPlanId(planId: string): Promise<PlanDay[]> {
-    const pool = this.databaseConnection.getPool();
-    const query = 'SELECT * FROM plan_days WHERE plan_id = $1 ORDER BY day_of_week ASC';
+  public async getById(id: string): Promise<PlanDay | null> {
+    const db = this.databaseConnection.getDatabase();
+    const query = 'SELECT * FROM plan_days WHERE id = ?';
     
     try {
-      const result = await pool.query(query, [planId]);
-      return result.rows.map((row) => this.mapRowToPlanDay(row));
+      const row = db.prepare(query).get(id) as Record<string, unknown> | undefined;
+      if (!row) {
+        return null;
+      }
+      return this.mapRowToPlanDay(row);
+    } catch (error) {
+      console.error('Error fetching plan day by id:', error);
+      throw error;
+    }
+  }
+
+  public async getByPlanId(planId: string): Promise<PlanDay[]> {
+    const db = this.databaseConnection.getDatabase();
+    const query = 'SELECT * FROM plan_days WHERE plan_id = ? ORDER BY day_of_week ASC';
+    
+    try {
+      const rows = db.prepare(query).all(planId) as Array<Record<string, unknown>>;
+      return rows.map((row) => this.mapRowToPlanDay(row));
     } catch (error) {
       console.error('Error fetching plan days by plan id:', error);
       throw error;
@@ -23,26 +39,28 @@ export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
   }
 
   public async create(planDay: PlanDay): Promise<PlanDay> {
-    const pool = this.databaseConnection.getPool();
+    const db = this.databaseConnection.getDatabase();
     const query = `
       INSERT INTO plan_days (id, plan_id, day_of_week, day_name, content, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
     try {
-      const values = [
+      db.prepare(query).run(
         planDay.id,
         planDay.planId,
         planDay.dayOfWeek,
         planDay.dayName,
         planDay.content || '',
-        planDay.createdAt,
-        planDay.updatedAt
-      ];
+        planDay.createdAt.toISOString(),
+        planDay.updatedAt.toISOString()
+      );
 
-      const result = await pool.query(query, values);
-      return this.mapRowToPlanDay(result.rows[0]);
+      const createdPlanDay = await this.getById(planDay.id);
+      if (!createdPlanDay) {
+        throw new Error('Failed to retrieve created plan day');
+      }
+      return createdPlanDay;
     } catch (error) {
       console.error('Error creating plan day:', error);
       throw error;
@@ -50,28 +68,29 @@ export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
   }
 
   public async update(planDay: PlanDay): Promise<PlanDay> {
-    const pool = this.databaseConnection.getPool();
+    const db = this.databaseConnection.getDatabase();
     const query = `
       UPDATE plan_days
-      SET content = $2, updated_at = $3
-      WHERE id = $1
-      RETURNING *
+      SET content = ?, updated_at = ?
+      WHERE id = ?
     `;
     
     try {
-      const values = [
-        planDay.id,
+      const result = db.prepare(query).run(
         planDay.content,
-        planDay.updatedAt
-      ];
-
-      const result = await pool.query(query, values);
+        planDay.updatedAt.toISOString(),
+        planDay.id
+      );
       
-      if (result.rows.length === 0) {
+      if (result.changes === 0) {
         throw new Error(`PlanDay with id ${planDay.id} not found`);
       }
 
-      return this.mapRowToPlanDay(result.rows[0]);
+      const updatedPlanDay = await this.getById(planDay.id);
+      if (!updatedPlanDay) {
+        throw new Error('Failed to retrieve updated plan day');
+      }
+      return updatedPlanDay;
     } catch (error) {
       console.error('Error updating plan day:', error);
       throw error;
@@ -79,13 +98,13 @@ export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
   }
 
   public async delete(id: string): Promise<void> {
-    const pool = this.databaseConnection.getPool();
-    const query = 'DELETE FROM plan_days WHERE id = $1';
+    const db = this.databaseConnection.getDatabase();
+    const query = 'DELETE FROM plan_days WHERE id = ?';
     
     try {
-      const result = await pool.query(query, [id]);
+      const result = db.prepare(query).run(id);
       
-      if (result.rowCount === 0) {
+      if (result.changes === 0) {
         throw new Error(`PlanDay with id ${id} not found`);
       }
     } catch (error) {
@@ -95,11 +114,11 @@ export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
   }
 
   public async deleteByPlanId(planId: string): Promise<void> {
-    const pool = this.databaseConnection.getPool();
-    const query = 'DELETE FROM plan_days WHERE plan_id = $1';
+    const db = this.databaseConnection.getDatabase();
+    const query = 'DELETE FROM plan_days WHERE plan_id = ?';
     
     try {
-      await pool.query(query, [planId]);
+      db.prepare(query).run(planId);
     } catch (error) {
       console.error('Error deleting plan days by plan id:', error);
       throw error;
@@ -107,41 +126,33 @@ export class PostgreSQLPlanDayRepository implements IPlanDayRepository {
   }
 
   public async createAll(planDays: PlanDay[]): Promise<PlanDay[]> {
-    const pool = this.databaseConnection.getPool();
-    const client = await pool.connect();
-
-    try {
-      await client.query('BEGIN');
-      const createdDays: PlanDay[] = [];
+    const db = this.databaseConnection.getDatabase();
+    const transaction = db.transaction((planDays: PlanDay[]) => {
+      const insertStmt = db.prepare(`
+        INSERT INTO plan_days (id, plan_id, day_of_week, day_name, content, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
 
       for (const planDay of planDays) {
-        const query = `
-          INSERT INTO plan_days (id, plan_id, day_of_week, day_name, content, created_at, updated_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING *
-        `;
-        const values = [
+        insertStmt.run(
           planDay.id,
           planDay.planId,
           planDay.dayOfWeek,
           planDay.dayName,
           planDay.content || '',
-          planDay.createdAt,
-          planDay.updatedAt
-        ];
-
-        const result = await client.query(query, values);
-        createdDays.push(this.mapRowToPlanDay(result.rows[0]));
+          planDay.createdAt.toISOString(),
+          planDay.updatedAt.toISOString()
+        );
       }
 
-      await client.query('COMMIT');
-      return createdDays;
+      return planDays;
+    });
+
+    try {
+      return transaction(planDays);
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error('Error creating all plan days:', error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 

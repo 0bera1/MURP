@@ -1,7 +1,7 @@
-import { Pool } from 'pg';
+import Database from 'better-sqlite3';
 
 export interface IDatabaseConnection {
-  getPool(): Pool;
+  getDatabase(): Database.Database;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   isConnected(): boolean;

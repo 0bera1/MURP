@@ -1,12 +1,12 @@
 import { IPlanService } from './IPlanService';
 import { PlanService } from './PlanService';
 import { IDatabaseConnection } from '../database/IDatabaseConnection';
-import { PostgreSQLPlanRepository } from '../repositories/PostgreSQLPlanRepository';
+import { SQLitePlanRepository } from '../repositories/SQLitePlanRepository';
 import { PlanDayService } from './PlanDayService';
 import { IPlanDayService } from './IPlanDayService';
 import { ISettingsService } from './ISettingsService';
 import { SettingsService } from './SettingsService';
-import { PostgreSQLSettingsRepository } from '../repositories/PostgreSQLSettingsRepository';
+import { SQLiteSettingsRepository } from '../repositories/SQLiteSettingsRepository';
 
 export class PlanServiceManager {
   private planService: IPlanService | null = null;
@@ -23,9 +23,9 @@ export class PlanServiceManager {
       await this.databaseConnection.connect();
     }
 
-    const repository = new PostgreSQLPlanRepository(this.databaseConnection);
+    const repository = new SQLitePlanRepository(this.databaseConnection);
     this.planDayService = new PlanDayService(undefined, this.databaseConnection);
-    const settingsRepository = new PostgreSQLSettingsRepository(this.databaseConnection);
+    const settingsRepository = new SQLiteSettingsRepository(this.databaseConnection);
     this.settingsService = new SettingsService(settingsRepository);
     this.planService = new PlanService(repository, this.planDayService, this.settingsService);
     await this.planService.initialize();

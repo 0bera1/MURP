@@ -1,7 +1,7 @@
 import { ISettingsRepository } from './ISettingsRepository';
 import { IDatabaseConnection } from '../database/IDatabaseConnection';
 
-export class PostgreSQLSettingsRepository implements ISettingsRepository {
+export class SQLiteSettingsRepository implements ISettingsRepository {
   private readonly databaseConnection: IDatabaseConnection;
 
   constructor(databaseConnection: IDatabaseConnection) {
@@ -9,15 +9,15 @@ export class PostgreSQLSettingsRepository implements ISettingsRepository {
   }
 
   public async get(key: string): Promise<string | null> {
-    const pool = this.databaseConnection.getPool();
-    const query = 'SELECT value FROM settings WHERE key = $1';
+    const db = this.databaseConnection.getDatabase();
+    const query = 'SELECT value FROM settings WHERE key = ?';
     
     try {
-      const result = await pool.query(query, [key]);
-      if (result.rows.length === 0) {
+      const row = db.prepare(query).get(key) as { value: string } | undefined;
+      if (!row) {
         return null;
       }
-      return result.rows[0].value as string;
+      return row.value;
     } catch (error) {
       console.error(`Error fetching setting ${key}:`, error);
       throw error;
@@ -25,16 +25,16 @@ export class PostgreSQLSettingsRepository implements ISettingsRepository {
   }
 
   public async set(key: string, value: string): Promise<void> {
-    const pool = this.databaseConnection.getPool();
+    const db = this.databaseConnection.getDatabase();
     const query = `
       INSERT INTO settings (key, value, updated_at)
-      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT (key) 
-      DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
+      DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
     `;
     
     try {
-      await pool.query(query, [key, value]);
+      db.prepare(query).run(key, value, value);
     } catch (error) {
       console.error(`Error setting ${key}:`, error);
       throw error;
@@ -42,13 +42,13 @@ export class PostgreSQLSettingsRepository implements ISettingsRepository {
   }
 
   public async getAll(): Promise<Record<string, string>> {
-    const pool = this.databaseConnection.getPool();
+    const db = this.databaseConnection.getDatabase();
     const query = 'SELECT key, value FROM settings';
     
     try {
-      const result = await pool.query(query);
+      const rows = db.prepare(query).all() as Array<{ key: string; value: string }>;
       const settings: Record<string, string> = {};
-      result.rows.forEach((row) => {
+      rows.forEach((row) => {
         settings[row.key] = row.value;
       });
       return settings;
