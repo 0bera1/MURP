@@ -15,9 +15,9 @@ export class WindowManager {
       return this.mainWindow;
     }
 
-    // Icon dosya yolu
+    // Icon dosya yolu - Windows için PNG/ICO, diğer platformlar için SVG
     const iconPath = process.platform === 'win32' 
-      ? path.join(__dirname, '../murpicon.svg')
+      ? path.join(__dirname, '../murpIco.png')
       : path.join(__dirname, '../murpicon.svg');
 
     this.mainWindow = new BrowserWindow({

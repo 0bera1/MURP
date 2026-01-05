@@ -4,9 +4,10 @@
   "description": "Manage UR Plan - Electron Desktop Application",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.renderer.json && npm run copy:html && npm run copy:icon && npm run fix:appsettings",
+    "build": "npm run create:icon && tsc && tsc -p tsconfig.renderer.json && npm run copy:html && npm run copy:icon && npm run fix:appsettings",
     "copy:html": "node scripts/copy-html.js",
     "copy:icon": "node scripts/copy-icon.js",
+    "create:icon": "node scripts/create-icon.js",
     "fix:appsettings": "node scripts/fix-appsettings.js",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "db:path": "node scripts/show-db-path.js",
@@ -41,6 +42,8 @@
     "@types/three": "^0.182.0",
     "electron": "^28.0.0",
     "electron-builder": "^26.0.12",
+    "electron-icon-maker": "^0.0.5",
+    "sharp": "^0.34.5",
     "typescript": "^5.3.0"
   },
   "build": {
@@ -55,6 +58,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "murpIco.png",
       "forceCodeSigning": false,
       "verifyUpdateCodeSignature": false,
       "target": [
