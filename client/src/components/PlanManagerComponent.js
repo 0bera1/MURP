@@ -54,12 +54,14 @@ export class PlanManagerComponent {
           <h2 class="view-title">Plan Yönetimi</h2>
           <div class="empty-state">
             <p>Henüz plan oluşturulmamış.</p>
-            <button class="menu-button" data-action="newPlan">
-              Yeni Plan Oluştur
-            </button>
-            <button class="menu-button back-button" data-action="back">
-              ← Geri
-            </button>
+            <div class="empty-state-actions">
+              <button class="menu-button" data-action="newPlan">
+                Yeni Plan Oluştur
+              </button>
+              <button class="menu-button back-button" data-action="back">
+                ← Geri
+              </button>
+            </div>
           </div>
         </div>
       `;

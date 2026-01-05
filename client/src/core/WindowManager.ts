@@ -29,7 +29,6 @@ export class WindowManager {
 
     // Her zaman local HTML dosyasını yükle (development server yok)
     const htmlPath = path.join(__dirname, '../renderer/index.html');
-    console.log('Loading HTML from:', htmlPath);
     this.mainWindow.loadFile(htmlPath);
     
     // Development modunda DevTools'u aç

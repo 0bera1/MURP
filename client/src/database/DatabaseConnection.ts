@@ -44,7 +44,6 @@ export class DatabaseConnection implements IDatabaseConnection {
       
       client.release();
       this.connected = true;
-      console.log('Database connection established');
     } catch (error) {
       console.error('Failed to connect to database:', error);
       this.connected = false;
@@ -142,7 +141,6 @@ export class DatabaseConnection implements IDatabaseConnection {
         ON CONFLICT (key) DO NOTHING;
       `);
 
-      console.log('Database migrations completed successfully');
     } catch (error) {
       console.error('Error running migrations:', error);
       // Don't throw - allow connection to proceed even if migrations fail
@@ -155,7 +153,6 @@ export class DatabaseConnection implements IDatabaseConnection {
       await this.pool.end();
       this.pool = null;
       this.connected = false;
-      console.log('Database connection closed');
     }
   }
 

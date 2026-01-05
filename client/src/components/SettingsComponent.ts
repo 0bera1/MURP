@@ -1,6 +1,7 @@
 import { useViewState } from '../hooks/useViewState.js';
 import { usePlan } from '../hooks/usePlan.js';
 import { AppSettings } from '../models/AppSettings.js';
+import { getI18n } from '../services/I18nService.js';
 
 export class SettingsComponent {
   private viewStateHook: ReturnType<typeof useViewState>;
@@ -8,6 +9,7 @@ export class SettingsComponent {
   private containerElement: HTMLElement | null = null;
   private currentSettings: AppSettings | null = null;
   private isFullScreen: boolean = false;
+  private i18n = getI18n();
 
   constructor() {
     this.viewStateHook = useViewState();
@@ -49,9 +51,9 @@ export class SettingsComponent {
       console.error('SettingsComponent: Error loading settings:', error);
       this.containerElement.innerHTML = `
         <div class="settings-container">
-          <h2 class="view-title">Ayarlar</h2>
-          <div class="error-message">Ayarlar yüklenirken bir hata oluştu.</div>
-          <button type="button" class="menu-button back-button" data-action="back">← Geri</button>
+          <h2 class="view-title">${this.i18n.t('settings.title')}</h2>
+          <div class="error-message">${this.i18n.t('settings.loadError')}</div>
+          <button type="button" class="menu-button back-button" data-action="back">${this.i18n.t('common.back')}</button>
         </div>
       `;
       this.attachBackButton();
@@ -63,13 +65,18 @@ export class SettingsComponent {
       return;
     }
 
+    const languages = this.i18n.getSupportedLanguages();
+    const languageOptions = languages.map(lang => 
+      `<option value="${lang.code}" ${this.currentSettings!.language === lang.code ? 'selected' : ''}>${lang.name}</option>`
+    ).join('');
+
     this.containerElement.innerHTML = `
       <div class="settings-container">
-        <h2 class="view-title">Ayarlar</h2>
+        <h2 class="view-title">${this.i18n.t('settings.title')}</h2>
         <form class="settings-form" id="settingsForm">
           <div class="settings-group">
             <label for="maxActivePlans" class="settings-label">
-              Maksimum Aktif Plan Sayısı:
+              ${this.i18n.t('settings.maxActivePlans')}:
             </label>
             <div class="settings-input-group">
               <input 
@@ -85,32 +92,50 @@ export class SettingsComponent {
                 autocomplete="off"
               />
               <span class="settings-description">
-                Aynı anda kaç plan aktif olabilir (1-10 arası)
+                ${this.i18n.t('settings.maxActivePlansDescription')}
               </span>
             </div>
           </div>
           <div class="settings-group">
             <label class="settings-label">
-              Uygulama Pencere Modu:
+              ${this.i18n.t('settings.windowMode')}:
             </label>
             <div class="settings-input-group">
               <button type="button" class="settings-toggle-button ${this.isFullScreen ? 'active' : ''}" id="fullScreenToggle">
-                <span class="toggle-label">Tam Ekran</span>
+                <span class="toggle-label">${this.i18n.t('settings.fullScreen')}</span>
                 <span class="toggle-switch">
                   <span class="toggle-slider"></span>
                 </span>
               </button>
               <span class="settings-description">
-                Uygulamayı tam ekran modunda aç/kapat
+                ${this.i18n.t('settings.fullScreenDescription')}
+              </span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <label for="language" class="settings-label">
+              ${this.i18n.t('settings.language')}:
+            </label>
+            <div class="settings-input-group">
+              <select 
+                id="language" 
+                name="language" 
+                class="settings-input"
+                required
+              >
+                ${languageOptions}
+              </select>
+              <span class="settings-description">
+                ${this.i18n.t('settings.languageDescription')}
               </span>
             </div>
           </div>
           <div class="settings-actions">
             <button type="button" class="menu-button back-button" data-action="back">
-              ← Geri
+              ${this.i18n.t('common.back')}
             </button>
             <button type="submit" class="menu-button continue-button">
-              Kaydet
+              ${this.i18n.t('common.save')}
             </button>
           </div>
         </form>
@@ -140,7 +165,40 @@ export class SettingsComponent {
       });
     }
 
+    // Language select
+    const languageSelect = this.containerElement.querySelector('#language') as HTMLSelectElement;
+    if (languageSelect) {
+      languageSelect.addEventListener('change', async () => {
+        await this.handleLanguageChange(languageSelect.value);
+      });
+    }
+
     this.attachBackButton();
+  }
+
+  private async handleLanguageChange(language: string): Promise<void> {
+    try {
+      const settingsAPI = (window.electronAPI as { 
+        settings?: { 
+          setLanguage: (language: string) => Promise<void> 
+        } 
+      }).settings;
+
+      if (!settingsAPI) {
+        throw new Error('Settings API not available');
+      }
+
+      await settingsAPI.setLanguage(language);
+      this.i18n.setLanguage(language as 'en' | 'tr');
+      this.currentSettings = { ...this.currentSettings!, language: language as 'en' | 'tr' };
+      
+      // Sayfayı yeniden render et
+      this.renderSettings();
+      this.attachEventListeners();
+    } catch (error) {
+      console.error('SettingsComponent: Error changing language:', error);
+      this.showMessage(this.i18n.t('settings.saveError'), 'error');
+    }
   }
 
   private async handleFullScreenToggle(): Promise<void> {
@@ -169,10 +227,10 @@ export class SettingsComponent {
         }
       }
 
-      this.showMessage(`Tam ekran modu ${newState ? 'açıldı' : 'kapatıldı'}`, 'success');
+      this.showMessage(newState ? this.i18n.t('settings.fullScreenEnabled') : this.i18n.t('settings.fullScreenDisabled'), 'success');
     } catch (error) {
       console.error('SettingsComponent: Error toggling full screen:', error);
-      this.showMessage('Tam ekran modu değiştirilirken bir hata oluştu', 'error');
+      this.showMessage(this.i18n.t('settings.fullScreenToggleError'), 'error');
     }
   }
 
@@ -194,7 +252,7 @@ export class SettingsComponent {
     const maxActivePlans = parseInt(formData.get('maxActivePlans') as string, 10);
 
     if (isNaN(maxActivePlans) || maxActivePlans < 1 || maxActivePlans > 10) {
-      this.showMessage('Geçerli bir sayı giriniz (1-10 arası)', 'error');
+      this.showMessage(this.i18n.t('settings.invalidNumber'), 'error');
       return;
     }
 
@@ -206,14 +264,18 @@ export class SettingsComponent {
     // Eğer yeni limit mevcut aktif plan sayısından azsa uyar
     if (maxActivePlans < currentActiveCount) {
       const excessCount = currentActiveCount - maxActivePlans;
-      const message = `Şu anda ${currentActiveCount} aktif plan var. Limit ${maxActivePlans} olarak ayarlanırsa, ${excessCount} plan pasif duruma getirilmesi gerekecek.\n\nLütfen önce Plan Yönetimi sayfasından ${excessCount} planı pasif duruma getirin, sonra bu ayarı kaydedin.`;
+      const message = this.i18n.t('settings.activePlansWarning', { 
+        count: currentActiveCount.toString(), 
+        limit: maxActivePlans.toString(), 
+        excess: excessCount.toString() 
+      }) + '\n\n' + this.i18n.t('settings.activePlansWarningAction', { count: excessCount.toString() });
       
       if (!confirm(message)) {
         return;
       }
       
       // Kullanıcı onayladı ama yine de uyar
-      this.showMessage(`Lütfen önce ${excessCount} planı pasif duruma getirin, sonra tekrar deneyin.`, 'error');
+      this.showMessage(this.i18n.t('settings.activePlansWarningActionShort', { count: excessCount.toString() }), 'error');
       return;
     }
 
@@ -230,7 +292,7 @@ export class SettingsComponent {
 
       await settingsAPI.setMaxActivePlans(maxActivePlans);
       this.currentSettings = { ...this.currentSettings!, maxActivePlans };
-      this.showMessage('Ayarlar başarıyla kaydedildi!', 'success');
+      this.showMessage(this.i18n.t('settings.saveSuccess'), 'success');
       
       // 1 saniye sonra ana sayfaya yönlendir
       setTimeout(() => {
@@ -238,7 +300,7 @@ export class SettingsComponent {
       }, 1000);
     } catch (error) {
       console.error('SettingsComponent: Error saving settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Ayarlar kaydedilirken bir hata oluştu';
+      const errorMessage = error instanceof Error ? error.message : this.i18n.t('settings.saveError');
       this.showMessage(errorMessage, 'error');
     }
   }

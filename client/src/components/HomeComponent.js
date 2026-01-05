@@ -4,12 +4,9 @@ import { ViewState } from '../models/ViewState';
 export class HomeComponent {
     constructor() {
         this.containerElement = null;
-        console.log('HomeComponent: Constructor called');
         try {
             this.viewStateHook = useViewState();
-            console.log('HomeComponent: useViewState hook initialized');
             this.planHook = usePlan();
-            console.log('HomeComponent: usePlan hook initialized');
         }
         catch (error) {
             console.error('HomeComponent: Constructor error:', error);
@@ -39,7 +36,6 @@ export class HomeComponent {
             return;
         }
         const currentView = this.viewStateHook.currentView;
-        console.log('HomeComponent: updateView called, currentView:', currentView);
         if (currentView !== ViewState.Home) {
             this.containerElement.style.display = 'none';
             return;
@@ -51,7 +47,6 @@ export class HomeComponent {
             const html = await this.generateHTML();
             this.containerElement.innerHTML = html;
             this.attachEventListeners();
-            console.log('HomeComponent: View updated successfully');
         }
         catch (error) {
             console.error('HomeComponent: Error updating view:', error);
@@ -66,11 +61,8 @@ export class HomeComponent {
     }
     async generateHTML() {
         try {
-            console.log('HomeComponent: generateHTML called');
             await this.planHook.refresh();
-            console.log('HomeComponent: Plan data refreshed');
             const { hasActivePlan, activePlan } = this.planHook;
-            console.log('HomeComponent: hasActivePlan:', hasActivePlan, 'activePlan:', activePlan);
             const continueButtonHTML = hasActivePlan && activePlan
                 ? `<button class="menu-button continue-button" data-action="continue">
             Continue to ${activePlan.weekName}
@@ -96,7 +88,6 @@ export class HomeComponent {
           </div>
         </div>
       `;
-            console.log('HomeComponent: HTML generated, length:', html.length);
             return html;
         }
         catch (error) {

@@ -38,15 +38,10 @@ export function usePlan() {
     };
     const refresh = async () => {
         try {
-            console.log('usePlan: refresh called');
             const api = await ensureAPI();
-            console.log('usePlan: API ensured');
             activePlan = await api.getActive();
-            console.log('usePlan: activePlan loaded:', activePlan);
             hasActivePlan = await api.hasActive();
-            console.log('usePlan: hasActivePlan:', hasActivePlan);
             lastOpenedPlan = await api.getLastOpened();
-            console.log('usePlan: lastOpenedPlan loaded:', lastOpenedPlan);
             notifyPlanChange();
         }
         catch (error) {

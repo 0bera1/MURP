@@ -23,13 +23,9 @@ export class ViewContainer {
   }
 
   public initialize(): void {
-    console.log('ViewContainer: Initialize called');
-    console.log('Current view:', this.currentView);
     try {
       this.setupViewStateListener();
-      console.log('ViewContainer: View state listener setup complete');
       this.renderCurrentView();
-      console.log('ViewContainer: Initial render complete');
     } catch (error) {
       console.error('ViewContainer: Initialize error:', error);
       throw error;
@@ -59,13 +55,11 @@ export class ViewContainer {
   }
 
   private renderCurrentView(): void {
-    console.log('ViewContainer: renderCurrentView called, view:', this.currentView);
     const container = document.getElementById('app-container');
     if (!container) {
       console.error('ViewContainer: app-container not found!');
       return;
     }
-    console.log('ViewContainer: Container found, rendering view');
 
     try {
       switch (this.currentView) {
@@ -85,7 +79,6 @@ export class ViewContainer {
           this.renderSettings();
           break;
         default:
-          console.log('ViewContainer: Default case, rendering home');
           this.renderHome();
       }
     } catch (error) {

@@ -1,6 +1,6 @@
 import { ISettingsService } from './ISettingsService';
 import { ISettingsRepository } from '../repositories/ISettingsRepository';
-import { AppSettings, DEFAULT_SETTINGS } from '../models/AppSettings';
+import { AppSettings, DEFAULT_SETTINGS, SupportedLanguage } from '../models/AppSettings';
 
 export class SettingsService implements ISettingsService {
   private readonly repository: ISettingsRepository;
@@ -22,9 +22,15 @@ export class SettingsService implements ISettingsService {
       const isFullScreenStr = await this.repository.get('is_full_screen');
       const isFullScreen = isFullScreenStr ? isFullScreenStr === 'true' : DEFAULT_SETTINGS.isFullScreen;
 
+      const languageStr = await this.repository.get('language');
+      const language = (languageStr && (languageStr === 'en' || languageStr === 'tr')) 
+        ? languageStr as SupportedLanguage 
+        : DEFAULT_SETTINGS.language;
+
       this.settingsCache = {
         maxActivePlans: maxActivePlans || DEFAULT_SETTINGS.maxActivePlans,
-        isFullScreen: isFullScreen
+        isFullScreen: isFullScreen,
+        language: language
       };
 
       return this.settingsCache;
@@ -42,6 +48,10 @@ export class SettingsService implements ISettingsService {
 
       if (settings.isFullScreen !== undefined) {
         await this.repository.set('is_full_screen', settings.isFullScreen.toString());
+      }
+
+      if (settings.language !== undefined) {
+        await this.repository.set('language', settings.language);
       }
 
       // Cache'i temizle
@@ -73,6 +83,15 @@ export class SettingsService implements ISettingsService {
 
   public async setIsFullScreen(isFullScreen: boolean): Promise<void> {
     await this.updateSettings({ isFullScreen });
+  }
+
+  public async getLanguage(): Promise<SupportedLanguage> {
+    const settings = await this.getSettings();
+    return settings.language;
+  }
+
+  public async setLanguage(language: SupportedLanguage): Promise<void> {
+    await this.updateSettings({ language });
   }
 }
 

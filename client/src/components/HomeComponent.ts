@@ -1,6 +1,7 @@
 import { useViewState } from '../hooks/useViewState.js';
 import { usePlan } from '../hooks/usePlan.js';
 import { ViewState } from '../models/ViewState.js';
+import { getI18n } from '../services/I18nService.js';
 
 export class HomeComponent {
   private viewStateHook: ReturnType<typeof useViewState>;
@@ -10,14 +11,13 @@ export class HomeComponent {
   private lastRenderedHTML: string = '';
   private viewStateListener: (() => void) | null = null;
   private planDataListener: (() => void) | null = null;
+  private languageChangeListener: (() => void) | null = null;
+  private i18n = getI18n();
 
   constructor() {
-    console.log('HomeComponent: Constructor called');
     try {
       this.viewStateHook = useViewState();
-      console.log('HomeComponent: useViewState hook initialized');
       this.planHook = usePlan();
-      console.log('HomeComponent: usePlan hook initialized');
     } catch (error) {
       console.error('HomeComponent: Constructor error:', error);
       throw error;
@@ -46,22 +46,35 @@ export class HomeComponent {
     if (this.planDataListener) {
       window.removeEventListener('planDataChanged', this.planDataListener);
     }
+    if (this.languageChangeListener) {
+      window.removeEventListener('languageChanged', this.languageChangeListener);
+    }
+    if (this.languageChangeListener) {
+      window.removeEventListener('forceUpdate', this.languageChangeListener);
+    }
 
     // Yeni listener'ları ekle
     this.viewStateListener = () => {
-      console.log('HomeComponent: viewStateChanged event received');
       this.updateView();
     };
     this.planDataListener = () => {
-      console.log('HomeComponent: planDataChanged event received');
       // Plan data değiştiğinde sadece Home view'deyse update et
       if (this.viewStateHook.currentView === ViewState.Home) {
+        this.updateView();
+      }
+    };
+    this.languageChangeListener = () => {
+      // Dil değiştiğinde view'ı güncelle
+      if (this.viewStateHook.currentView === ViewState.Home) {
+        this.lastRenderedHTML = ''; // Force re-render
         this.updateView();
       }
     };
 
     window.addEventListener('viewStateChanged', this.viewStateListener);
     window.addEventListener('planDataChanged', this.planDataListener);
+    window.addEventListener('languageChanged', this.languageChangeListener);
+    window.addEventListener('forceUpdate', this.languageChangeListener);
   }
 
   private async updateView(): Promise<void> {
@@ -71,7 +84,6 @@ export class HomeComponent {
     }
 
     const currentView = this.viewStateHook.currentView;
-    console.log('HomeComponent: updateView called, currentView:', currentView);
     
     if (currentView !== ViewState.Home) {
       this.containerElement.style.display = 'none';
@@ -81,7 +93,6 @@ export class HomeComponent {
 
     // Eğer zaten güncelleniyorsa ve aynı view'daysa skip et
     if (this.isUpdating) {
-      console.log('HomeComponent: Update already in progress, skipping');
       return;
     }
 
@@ -99,17 +110,15 @@ export class HomeComponent {
         this.containerElement.innerHTML = html;
         this.lastRenderedHTML = html;
         this.attachEventListeners();
-        console.log('HomeComponent: View updated successfully');
       } else {
-        console.log('HomeComponent: HTML unchanged, skipping render');
       }
     } catch (error) {
       console.error('HomeComponent: Error updating view:', error);
       this.containerElement.innerHTML = `
         <div style="padding: 40px; text-align: center; color: white;">
-          <h2>Hata Oluştu</h2>
-          <p>${error instanceof Error ? error.message : 'Bilinmeyen hata'}</p>
-          <button class="menu-button" onclick="location.reload()">Yeniden Yükle</button>
+          <h2>${this.i18n.t('home.errorOccurred')}</h2>
+          <p>${error instanceof Error ? error.message : this.i18n.t('home.unknownError')}</p>
+          <button class="menu-button" onclick="location.reload()">${this.i18n.t('common.reload')}</button>
         </div>
       `;
     } finally {
@@ -119,7 +128,6 @@ export class HomeComponent {
 
   private async generateHTML(): Promise<string> {
     try {
-      console.log('HomeComponent: generateHTML called');
       // Refresh'i sadece gerçekten gerekirse çağır
       const { hasActivePlan, activePlan } = this.planHook;
       
@@ -135,64 +143,62 @@ export class HomeComponent {
 
         const html = `
           <div class="home-container">
-            <h1 class="home-title">Ne yapmak istiyorsun?</h1>
+            <h1 class="home-title">${this.i18n.t('home.title')}</h1>
             <div class="menu-buttons">
               ${continueButtonHTML}
               <button class="menu-button" data-action="newPlan">
-                New Plan
+                ${this.i18n.t('home.newPlan')}
               </button>
               <button class="menu-button" data-action="managePlan">
-                Manage / Select / Change Plan
+                ${this.i18n.t('home.managePlan')}
               </button>
               <button class="menu-button" data-action="settings">
-                Settings
+                ${this.i18n.t('common.settings')}
               </button>
               <button class="menu-button exit-button" data-action="exit">
-                Exit
+                ${this.i18n.t('common.exit')}
               </button>
             </div>
           </div>
         `;
-        console.log('HomeComponent: HTML generated, length:', html.length);
         return html;
       }
       
       // Plan data varsa direkt kullan
       const continueButtonHTML = hasActivePlan && activePlan
         ? `<button class="menu-button continue-button" data-action="continue">
-            Continue to ${activePlan.planName} (${activePlan.weekName})
+            ${this.i18n.t('home.continueTo')} ${activePlan.planName} (${activePlan.weekName})
           </button>`
         : '';
 
       const html = `
         <div class="home-container">
-          <h1 class="home-title">Ne yapmak istiyorsun?</h1>
+          <h1 class="home-title">${this.i18n.t('home.title')}</h1>
           <div class="menu-buttons">
             ${continueButtonHTML}
             <button class="menu-button" data-action="newPlan">
-              New Plan
+              ${this.i18n.t('home.newPlan')}
             </button>
             <button class="menu-button" data-action="managePlan">
-              Manage / Select / Change Plan
+              ${this.i18n.t('home.managePlan')}
             </button>
             <button class="menu-button" data-action="settings">
-              Settings
+              ${this.i18n.t('common.settings')}
             </button>
             <button class="menu-button exit-button" data-action="exit">
-              Exit
+              ${this.i18n.t('common.exit')}
             </button>
           </div>
         </div>
       `;
-      console.log('HomeComponent: HTML generated, length:', html.length);
       return html;
     } catch (error) {
       console.error('HomeComponent: Error generating HTML:', error);
       return `
         <div class="home-container">
-          <h1 class="home-title">Hata</h1>
-          <p style="color: red;">${error instanceof Error ? error.message : 'Bilinmeyen hata'}</p>
-          <button class="menu-button" onclick="location.reload()">Yeniden Yükle</button>
+          <h1 class="home-title">${this.i18n.t('common.error')}</h1>
+          <p style="color: red;">${error instanceof Error ? error.message : this.i18n.t('home.unknownError')}</p>
+          <button class="menu-button" onclick="location.reload()">${this.i18n.t('common.reload')}</button>
         </div>
       `;
     }

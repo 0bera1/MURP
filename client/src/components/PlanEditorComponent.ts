@@ -3,6 +3,7 @@ import { usePlan } from '../hooks/usePlan.js';
 import { ViewState } from '../models/ViewState.js';
 import { Plan } from '../models/Plan.js';
 import { PlanDay } from '../models/PlanDay.js';
+import { getI18n } from '../services/I18nService.js';
 
 export class PlanEditorComponent {
   private viewStateHook: ReturnType<typeof useViewState>;
@@ -13,6 +14,8 @@ export class PlanEditorComponent {
   private currentPlan: Plan | null = null;
   private currentPlanDays: PlanDay[] = [];
   private planId: string | null = null;
+  private languageChangeListener: (() => void) | null = null;
+  private i18n = getI18n();
 
   constructor() {
     this.viewStateHook = useViewState();
@@ -20,7 +23,6 @@ export class PlanEditorComponent {
   }
 
   public render(containerId: string, planId?: string): void {
-    console.log('PlanEditorComponent: render called with containerId:', containerId, 'planId:', planId);
     const container = document.getElementById(containerId);
     if (!container) {
       throw new Error(`Container with id "${containerId}" not found`);
@@ -40,7 +42,6 @@ export class PlanEditorComponent {
       this.renderForm();
     } else {
       // PlanId yoksa ve plan da yoksa bekle - event'ten gelecek
-      console.log('PlanEditorComponent: No planId provided, waiting for planId from event...');
     }
     
     this.setupViewStateListener();
@@ -52,26 +53,29 @@ export class PlanEditorComponent {
     }
 
     try {
-      console.log('PlanEditorComponent: Loading plan data for planId:', this.planId);
       this.currentPlan = await this.planHook.getPlanById(this.planId);
       this.currentPlanDays = await this.planHook.getPlanDays(this.planId);
       
       if (!this.currentPlan) {
-        this.showError('Plan bulunamadı');
+        this.showError(this.i18n.t('common.error'));
         this.viewStateHook.navigateToHome();
         return;
       }
 
-      console.log('PlanEditorComponent: Plan loaded:', this.currentPlan);
-      console.log('PlanEditorComponent: Plan days loaded:', this.currentPlanDays.length);
       this.renderForm();
     } catch (error) {
       console.error('PlanEditorComponent: Error loading plan data:', error);
-      this.showError('Plan verileri yüklenirken bir hata oluştu');
+      this.showError(this.i18n.t('common.error'));
     }
   }
 
   private setupViewStateListener(): void {
+    // Önceki listener'ları kaldır
+    if (this.languageChangeListener) {
+      window.removeEventListener('languageChanged', this.languageChangeListener);
+      window.removeEventListener('forceUpdate', this.languageChangeListener);
+    }
+
     window.addEventListener('viewStateChanged', ((event: CustomEvent<{ view: ViewState; planId?: string }>) => {
       // planId güncellenmişse kaydet, yoksa önceki değeri koru
       if (event.detail.planId !== undefined) {
@@ -85,6 +89,15 @@ export class PlanEditorComponent {
       }
       this.updateView();
     }) as EventListener);
+
+    this.languageChangeListener = () => {
+      if (this.viewStateHook.currentView === ViewState.PlanEditor && this.currentPlan) {
+        this.renderForm();
+      }
+    };
+
+    window.addEventListener('languageChanged', this.languageChangeListener);
+    window.addEventListener('forceUpdate', this.languageChangeListener);
   }
 
   private updateView(): void {
@@ -111,11 +124,9 @@ export class PlanEditorComponent {
       } else {
         // PlanId yoksa ve plan da yüklenmemişse home'a yönlendir
         // Ama önce bir kez daha kontrol et - belki planId henüz gelmedi
-        console.log('PlanEditorComponent: No planId and no plan, waiting...');
         // Kısa bir süre bekle, planId gelebilir
         setTimeout(() => {
           if (!this.planId && !this.currentPlan && this.containerElement) {
-            console.log('PlanEditorComponent: Still no planId after wait, navigating to home');
             this.viewStateHook.navigateToHome();
           }
         }, 100);
@@ -147,7 +158,7 @@ export class PlanEditorComponent {
 
     return `
       <div class="new-plan-container">
-        <h2 class="view-title">Plan Düzenle</h2>
+        <h2 class="view-title">${this.i18n.t('planEditor.title')}</h2>
         <div class="page-indicator-top">
           <span class="page-number">${this.currentPage}</span>
           <span class="page-separator">/</span>
@@ -162,13 +173,13 @@ export class PlanEditorComponent {
           </div>
           <div class="form-actions">
             <button type="button" class="menu-button back-button" data-action="back">
-              ← Geri
+              ${this.i18n.t('common.back')}
             </button>
             <button 
               type="submit" 
               class="menu-button continue-button submit-button ${this.currentPage === this.totalPages ? '' : 'hidden'}"
             >
-              Güncelle
+              ${this.i18n.t('planEditor.update')}
             </button>
           </div>
         </form>
@@ -204,30 +215,30 @@ export class PlanEditorComponent {
     return `
       <div class="form-page ${this.currentPage === 1 ? 'active' : ''}" data-page="1">
         <div class="form-group">
-          <label for="planName">Plan Adı: <span class="required">*</span></label>
+          <label for="planName">${this.i18n.t('planEditor.planName')}: <span class="required">*</span></label>
           <input 
             type="text" 
             id="planName" 
             name="planName" 
             required
             class="form-input"
-            placeholder="Plan adını giriniz"
+            placeholder="${this.i18n.t('planEditor.planNamePlaceholder')}"
             value="${this.escapeHtml(this.currentPlan.planName)}"
           />
         </div>
         <div class="form-group">
-          <label for="description">Plan Açıklaması:</label>
+          <label for="description">${this.i18n.t('planEditor.description')}:</label>
           <textarea 
             id="description" 
             name="description" 
             class="form-input form-textarea"
-            placeholder="Plan açıklamasını giriniz (opsiyonel)"
+            placeholder="${this.i18n.t('planEditor.descriptionPlaceholder')}"
             rows="5"
           >${this.escapeHtml(this.currentPlan.description || '')}</textarea>
         </div>
         <div class="form-row">
           <div class="form-group form-group-half">
-            <label for="year">Yıl:</label>
+            <label for="year">${this.i18n.t('planEditor.year')}:</label>
             <input 
               type="number" 
               id="year" 
@@ -240,7 +251,7 @@ export class PlanEditorComponent {
             />
           </div>
           <div class="form-group form-group-half">
-            <label for="week">Hafta:</label>
+            <label for="week">${this.i18n.t('planEditor.week')}:</label>
             <input 
               type="number" 
               id="week" 
@@ -261,14 +272,14 @@ export class PlanEditorComponent {
     return `
       <div class="form-page ${this.currentPage === 2 ? 'active' : ''}" data-page="2">
         <div class="form-group">
-          <label class="page-title-label">Haftalık Plan Günleri</label>
+          <label class="page-title-label">${this.i18n.t('planEditor.weeklyPlanDays')}</label>
           <div class="plan-days-table-container">
             <table class="plan-days-table">
               <thead>
                 <tr>
-                  <th>Gün</th>
-                  <th>İçerik</th>
-                  <th>Notlar</th>
+                  <th>${this.i18n.t('planEditor.day')}</th>
+                  <th>${this.i18n.t('planEditor.content')}</th>
+                  <th>${this.i18n.t('planEditor.notes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,7 +298,7 @@ export class PlanEditorComponent {
                         <textarea 
                           name="dayContent_${index}" 
                           class="day-content-input"
-                          placeholder="${day.dayName} için plan içeriği"
+                          placeholder="${day.dayName} ${this.i18n.t('planEditor.dayContentPlaceholder')}"
                           rows="2"
                         >${this.escapeHtml(parsed.mainContent)}</textarea>
                       </td>
@@ -295,7 +306,7 @@ export class PlanEditorComponent {
                         <textarea 
                           name="dayNotes_${index}" 
                           class="day-content-input"
-                          placeholder="Notlar (opsiyonel)"
+                          placeholder="${this.i18n.t('planEditor.notesPlaceholder')}"
                           rows="2"
                         >${this.escapeHtml(parsed.notes)}</textarea>
                       </td>
@@ -311,10 +322,14 @@ export class PlanEditorComponent {
   }
 
   private parseContent(content: string): { mainContent: string; notes: string } {
-    const notesMatch = content.match(/\n\nNotlar:\s*(.+)$/s);
+    // Hem Türkçe hem İngilizce "Notlar:" / "Notes:" için regex
+    const notesPatternTr = /\n\nNotlar:\s*(.+)$/s;
+    const notesPatternEn = /\n\nNotes:\s*(.+)$/s;
+    const notesMatch = content.match(notesPatternTr) || content.match(notesPatternEn);
     if (notesMatch) {
+      const pattern = content.match(notesPatternTr) ? notesPatternTr : notesPatternEn;
       return {
-        mainContent: content.replace(/\n\nNotlar:\s*.+$/s, '').trim(),
+        mainContent: content.replace(pattern, '').trim(),
         notes: notesMatch[1].trim()
       };
     }
@@ -329,13 +344,13 @@ export class PlanEditorComponent {
 
   private getDaysOfWeek(): Array<{ dayOfWeek: number; dayName: string }> {
     return [
-      { dayOfWeek: 1, dayName: 'Pazartesi' },
-      { dayOfWeek: 2, dayName: 'Salı' },
-      { dayOfWeek: 3, dayName: 'Çarşamba' },
-      { dayOfWeek: 4, dayName: 'Perşembe' },
-      { dayOfWeek: 5, dayName: 'Cuma' },
-      { dayOfWeek: 6, dayName: 'Cumartesi' },
-      { dayOfWeek: 0, dayName: 'Pazar' }
+      { dayOfWeek: 1, dayName: this.i18n.t('days.monday') },
+      { dayOfWeek: 2, dayName: this.i18n.t('days.tuesday') },
+      { dayOfWeek: 3, dayName: this.i18n.t('days.wednesday') },
+      { dayOfWeek: 4, dayName: this.i18n.t('days.thursday') },
+      { dayOfWeek: 5, dayName: this.i18n.t('days.friday') },
+      { dayOfWeek: 6, dayName: this.i18n.t('days.saturday') },
+      { dayOfWeek: 0, dayName: this.i18n.t('days.sunday') }
     ];
   }
 
@@ -489,7 +504,8 @@ export class PlanEditorComponent {
         const dayId = (formData.get(`dayId_${index}`) as string)?.trim() || '';
         const dayContent = (formData.get(`dayContent_${index}`) as string)?.trim() || '';
         const dayNotes = (formData.get(`dayNotes_${index}`) as string)?.trim() || '';
-        const fullContent = dayNotes ? `${dayContent}\n\nNotlar: ${dayNotes}` : dayContent;
+        const notesLabel = this.i18n.getLanguage() === 'tr' ? 'Notlar:' : 'Notes:';
+        const fullContent = dayNotes ? `${dayContent}\n\n${notesLabel} ${dayNotes}` : dayContent;
         
         // Mevcut planDay'i bul
         const existingDay = this.currentPlanDays.find(pd => pd.dayOfWeek === day.dayOfWeek);

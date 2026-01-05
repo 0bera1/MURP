@@ -22,10 +22,8 @@ class MainApplication {
     
     try {
       await this.planServiceManager.initialize();
-      console.log('Database and services initialized successfully');
     } catch (error) {
       console.error('Failed to initialize database:', error);
-      console.log('Application will continue but database features may not work');
     }
 
     // SettingsService'i WindowManager'a set et
@@ -203,6 +201,16 @@ class MainApplication {
       await settingsService.setIsFullScreen(isFullScreen);
       // Pencere durumunu da güncelle
       this.windowManager.setFullScreen(isFullScreen);
+    });
+
+    ipcMain.handle('settings:getLanguage', async (): Promise<string> => {
+      const settingsService = this.planServiceManager.getSettingsService();
+      return await settingsService.getLanguage();
+    });
+
+    ipcMain.handle('settings:setLanguage', async (_event, language: string): Promise<void> => {
+      const settingsService = this.planServiceManager.getSettingsService();
+      await settingsService.setLanguage(language as 'en' | 'tr');
     });
   }
 }

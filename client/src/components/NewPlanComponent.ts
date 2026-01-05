@@ -2,6 +2,7 @@ import { useViewState } from '../hooks/useViewState.js';
 import { usePlan } from '../hooks/usePlan.js';
 import { ViewState } from '../models/ViewState.js';
 import { PlanDay } from '../models/PlanDay.js';
+import { getI18n } from '../services/I18nService.js';
 
 export class NewPlanComponent {
   private viewStateHook: ReturnType<typeof useViewState>;
@@ -9,6 +10,8 @@ export class NewPlanComponent {
   private containerElement: HTMLElement | null = null;
   private currentPage: number = 1;
   private totalPages: number = 2;
+  private languageChangeListener: (() => void) | null = null;
+  private i18n = getI18n();
 
   constructor() {
     this.viewStateHook = useViewState();
@@ -16,7 +19,6 @@ export class NewPlanComponent {
   }
 
   public render(containerId: string): void {
-    console.log('NewPlanComponent: render called with containerId:', containerId);
     const container = document.getElementById(containerId);
     if (!container) {
       throw new Error(`Container with id "${containerId}" not found`);
@@ -24,7 +26,6 @@ export class NewPlanComponent {
 
     this.containerElement = container;
     this.currentPage = 1; // Reset to first page when rendering
-    console.log('NewPlanComponent: container found, rendering form');
     this.containerElement.style.display = 'block';
     this.containerElement.innerHTML = this.generateHTML();
     this.attachEventListeners();
@@ -32,27 +33,39 @@ export class NewPlanComponent {
   }
 
   private setupViewStateListener(): void {
+    // Önceki listener'ları kaldır
+    if (this.languageChangeListener) {
+      window.removeEventListener('languageChanged', this.languageChangeListener);
+      window.removeEventListener('forceUpdate', this.languageChangeListener);
+    }
+
     window.addEventListener('viewStateChanged', () => {
       this.updateView();
     });
+
+    this.languageChangeListener = () => {
+      if (this.viewStateHook.currentView === ViewState.NewPlan) {
+        this.containerElement!.innerHTML = this.generateHTML();
+        this.attachEventListeners();
+      }
+    };
+
+    window.addEventListener('languageChanged', this.languageChangeListener);
+    window.addEventListener('forceUpdate', this.languageChangeListener);
   }
 
   private updateView(): void {
     if (!this.containerElement) {
-      console.log('NewPlanComponent: updateView called but containerElement is null');
       return;
     }
 
     const currentView = this.viewStateHook.currentView;
-    console.log('NewPlanComponent: updateView called, currentView:', currentView);
     
     if (currentView !== ViewState.NewPlan) {
-      console.log('NewPlanComponent: currentView is not NewPlan, hiding container');
       this.containerElement.style.display = 'none';
       return;
     }
 
-    console.log('NewPlanComponent: currentView is NewPlan, showing and rendering form');
     this.containerElement.style.display = 'block';
     
     // Sadece sayfa değiştiyse HTML'i yeniden oluştur
@@ -161,7 +174,7 @@ export class NewPlanComponent {
 
     return `
       <div class="new-plan-container">
-        <h2 class="view-title">Yeni Plan Oluştur</h2>
+        <h2 class="view-title">${this.i18n.t('newPlan.title')}</h2>
         <div class="page-indicator-top">
           <span class="page-number">${this.currentPage}</span>
           <span class="page-separator">/</span>
@@ -176,13 +189,13 @@ export class NewPlanComponent {
           </div>
           <div class="form-actions">
             <button type="button" class="menu-button back-button" data-action="back">
-              ← Geri
+              ${this.i18n.t('common.back')}
             </button>
             <button 
               type="submit" 
               class="menu-button continue-button submit-button ${this.currentPage === this.totalPages ? '' : 'hidden'}"
             >
-              Kaydet
+              ${this.i18n.t('common.save')}
             </button>
           </div>
         </form>
@@ -214,29 +227,29 @@ export class NewPlanComponent {
     return `
       <div class="form-page ${this.currentPage === 1 ? 'active' : ''}" data-page="1">
         <div class="form-group">
-          <label for="planName">Plan Adı: <span class="required">*</span></label>
+          <label for="planName">${this.i18n.t('newPlan.planName')}: <span class="required">*</span></label>
           <input 
             type="text" 
             id="planName" 
             name="planName" 
             required
             class="form-input"
-            placeholder="Plan adını giriniz"
+            placeholder="${this.i18n.t('newPlan.planNamePlaceholder')}"
           />
         </div>
         <div class="form-group">
-          <label for="description">Plan Açıklaması:</label>
+          <label for="description">${this.i18n.t('newPlan.description')}:</label>
           <textarea 
             id="description" 
             name="description" 
             class="form-input form-textarea"
-            placeholder="Plan açıklamasını giriniz (opsiyonel)"
+            placeholder="${this.i18n.t('newPlan.descriptionPlaceholder')}"
             rows="5"
           ></textarea>
         </div>
         <div class="form-row">
           <div class="form-group form-group-half">
-            <label for="year">Yıl:</label>
+            <label for="year">${this.i18n.t('newPlan.year')}:</label>
             <input 
               type="number" 
               id="year" 
@@ -249,7 +262,7 @@ export class NewPlanComponent {
             />
           </div>
           <div class="form-group form-group-half">
-            <label for="week">Hafta:</label>
+            <label for="week">${this.i18n.t('newPlan.week')}:</label>
             <input 
               type="number" 
               id="week" 
@@ -270,14 +283,14 @@ export class NewPlanComponent {
     return `
       <div class="form-page ${this.currentPage === 2 ? 'active' : ''}" data-page="2">
         <div class="form-group">
-          <label class="page-title-label">Haftalık Plan Günleri</label>
+          <label class="page-title-label">${this.i18n.t('newPlan.weeklyPlanDays')}</label>
           <div class="plan-days-table-container">
             <table class="plan-days-table">
               <thead>
                 <tr>
-                  <th>Gün</th>
-                  <th>İçerik</th>
-                  <th>Notlar</th>
+                  <th>${this.i18n.t('newPlan.day')}</th>
+                  <th>${this.i18n.t('newPlan.content')}</th>
+                  <th>${this.i18n.t('newPlan.notes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -291,7 +304,7 @@ export class NewPlanComponent {
                       <textarea 
                         name="dayContent_${index}" 
                         class="day-content-input"
-                        placeholder="${day.dayName} için plan içeriği"
+                        placeholder="${day.dayName} ${this.i18n.t('newPlan.dayContentPlaceholder')}"
                         rows="2"
                       ></textarea>
                     </td>
@@ -299,7 +312,7 @@ export class NewPlanComponent {
                       <textarea 
                         name="dayNotes_${index}" 
                         class="day-content-input"
-                        placeholder="Notlar (opsiyonel)"
+                        placeholder="${this.i18n.t('newPlan.notesPlaceholder')}"
                         rows="2"
                       ></textarea>
                     </td>
@@ -315,13 +328,13 @@ export class NewPlanComponent {
 
   private getDaysOfWeek(): Array<{ dayOfWeek: number; dayName: string }> {
     return [
-      { dayOfWeek: 1, dayName: 'Pazartesi' },
-      { dayOfWeek: 2, dayName: 'Salı' },
-      { dayOfWeek: 3, dayName: 'Çarşamba' },
-      { dayOfWeek: 4, dayName: 'Perşembe' },
-      { dayOfWeek: 5, dayName: 'Cuma' },
-      { dayOfWeek: 6, dayName: 'Cumartesi' },
-      { dayOfWeek: 0, dayName: 'Pazar' }
+      { dayOfWeek: 1, dayName: this.i18n.t('days.monday') },
+      { dayOfWeek: 2, dayName: this.i18n.t('days.tuesday') },
+      { dayOfWeek: 3, dayName: this.i18n.t('days.wednesday') },
+      { dayOfWeek: 4, dayName: this.i18n.t('days.thursday') },
+      { dayOfWeek: 5, dayName: this.i18n.t('days.friday') },
+      { dayOfWeek: 6, dayName: this.i18n.t('days.saturday') },
+      { dayOfWeek: 0, dayName: this.i18n.t('days.sunday') }
     ];
   }
 
@@ -374,7 +387,8 @@ export class NewPlanComponent {
         const dayContent = (formData.get(`dayContent_${index}`) as string)?.trim() || '';
         const dayNotes = (formData.get(`dayNotes_${index}`) as string)?.trim() || '';
         // Notlar içeriğe ekleniyor (eğer notlar varsa)
-        const fullContent = dayNotes ? `${dayContent}\n\nNotlar: ${dayNotes}` : dayContent;
+        const notesLabel = this.i18n.getLanguage() === 'tr' ? 'Notlar:' : 'Notes:';
+        const fullContent = dayNotes ? `${dayContent}\n\n${notesLabel} ${dayNotes}` : dayContent;
         const planDay: PlanDay = {
           id: '', // Service'de oluşturulacak
           planId: '', // Service'de oluşturulacak

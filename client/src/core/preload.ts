@@ -33,7 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMaxActivePlans: (): Promise<number> => ipcRenderer.invoke('settings:getMaxActivePlans'),
     setMaxActivePlans: (maxActivePlans: number): Promise<void> => ipcRenderer.invoke('settings:setMaxActivePlans', maxActivePlans),
     getIsFullScreen: (): Promise<boolean> => ipcRenderer.invoke('settings:getIsFullScreen'),
-    setIsFullScreen: (isFullScreen: boolean): Promise<void> => ipcRenderer.invoke('settings:setIsFullScreen', isFullScreen)
+    setIsFullScreen: (isFullScreen: boolean): Promise<void> => ipcRenderer.invoke('settings:setIsFullScreen', isFullScreen),
+    getLanguage: (): Promise<string> => ipcRenderer.invoke('settings:getLanguage'),
+    setLanguage: (language: string): Promise<void> => ipcRenderer.invoke('settings:setLanguage', language)
   },
   window: {
     isFullScreen: (): Promise<boolean> => ipcRenderer.invoke('window:isFullScreen'),

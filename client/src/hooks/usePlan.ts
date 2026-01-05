@@ -84,15 +84,10 @@ export function usePlan(): {
 
   const refresh = async (): Promise<void> => {
     try {
-      console.log('usePlan: refresh called');
       const api = await ensureAPI();
-      console.log('usePlan: API ensured');
       const newActivePlan = await api.getActive();
-      console.log('usePlan: activePlan loaded:', newActivePlan);
       const newHasActivePlan = await api.hasActive();
-      console.log('usePlan: hasActivePlan:', newHasActivePlan);
       const newLastOpenedPlan = await api.getLastOpened();
-      console.log('usePlan: lastOpenedPlan loaded:', newLastOpenedPlan);
       
       // Sadece değişiklik varsa notify et
       const activePlanChanged = (newActivePlan?.id || null) !== lastActivePlanId;

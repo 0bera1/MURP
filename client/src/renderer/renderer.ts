@@ -3,6 +3,7 @@ import { PlasmaBackground } from '../components/PlasmaBackground.js';
 import { Plan } from '../models/Plan.js';
 import { PlanDay } from '../models/PlanDay.js';
 import { AppSettings } from '../models/AppSettings.js';
+import { getI18n } from '../services/I18nService.js';
 
 interface ElectronPlanAPI {
   getAll: () => Promise<Plan[]>;
@@ -32,6 +33,8 @@ interface ElectronSettingsAPI {
   setMaxActivePlans: (maxActivePlans: number) => Promise<void>;
   getIsFullScreen: () => Promise<boolean>;
   setIsFullScreen: (isFullScreen: boolean) => Promise<void>;
+  getLanguage: () => Promise<string>;
+  setLanguage: (language: string) => Promise<void>;
 }
 
 interface ElectronWindowAPI {
@@ -60,10 +63,8 @@ class RendererApplication {
   private plasmaBackground: PlasmaBackground;
 
   constructor() {
-    console.log('RendererApplication: Constructor called');
     try {
       this.viewContainer = new ViewContainer();
-      console.log('RendererApplication: ViewContainer created');
       this.plasmaBackground = new PlasmaBackground({
         color: '#ff6b35',
         speed: 0.6,
@@ -72,30 +73,42 @@ class RendererApplication {
         opacity: 0.8,
         mouseInteractive: true
       });
-      console.log('RendererApplication: PlasmaBackground created');
     } catch (error) {
       console.error('RendererApplication: Failed to create components:', error);
       throw error;
     }
   }
 
-  public initialize(): void {
-    console.log('RendererApplication: Initialize called');
-    console.log('Document ready state:', document.readyState);
-    console.log('App container exists:', !!document.getElementById('app-container'));
-    console.log('window.electronAPI exists:', !!window.electronAPI);
-    
+  public async initialize(): Promise<void> {
     try {
+      // İlk olarak dil ayarını yükle ve i18n'i initialize et
+      if (window.electronAPI?.settings) {
+        try {
+          const language = await window.electronAPI.settings.getLanguage();
+          const i18n = getI18n();
+          i18n.setLanguage(language as 'en' | 'tr');
+        } catch (error) {
+          console.error('Failed to load language setting:', error);
+        }
+      }
+
+      // Dil değişikliği event listener'ı
+      window.addEventListener('languageChanged', () => {
+        // Sayfayı yenile veya component'leri yeniden render et
+        const container = document.getElementById('app-container');
+        if (container) {
+          const event = new CustomEvent('forceUpdate');
+          window.dispatchEvent(event);
+        }
+      });
+
       // DOM'un hazır olduğundan emin ol
       if (document.readyState === 'loading') {
-        console.log('Waiting for DOMContentLoaded...');
         document.addEventListener('DOMContentLoaded', () => {
-          console.log('DOMContentLoaded fired');
           this.viewContainer.initialize();
           this.plasmaBackground.initialize('app-container');
         });
       } else {
-        console.log('DOM already ready, initializing immediately');
         // ViewContainer'ı önce initialize et, sonra background'ı
         this.viewContainer.initialize();
         // Background'ı initialize et
@@ -127,7 +140,8 @@ class RendererApplication {
   }
 }
 
-console.log('Renderer script loaded');
 const rendererApp = new RendererApplication();
-rendererApp.initialize();
+rendererApp.initialize().catch((error) => {
+  console.error('Failed to initialize renderer:', error);
+});
 

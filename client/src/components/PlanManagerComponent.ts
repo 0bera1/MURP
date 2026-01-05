@@ -2,11 +2,14 @@ import { useViewState } from '../hooks/useViewState.js';
 import { usePlan } from '../hooks/usePlan.js';
 import { Plan } from '../models/Plan.js';
 import { ViewState } from '../models/ViewState.js';
+import { getI18n } from '../services/I18nService.js';
 
 export class PlanManagerComponent {
   private viewStateHook: ReturnType<typeof useViewState>;
   private planHook: ReturnType<typeof usePlan>;
   private containerElement: HTMLElement | null = null;
+  private languageChangeListener: (() => void) | null = null;
+  private i18n = getI18n();
 
   constructor() {
     this.viewStateHook = useViewState();
@@ -25,6 +28,12 @@ export class PlanManagerComponent {
   }
 
   private setupViewStateListener(): void {
+    // Önceki listener'ları kaldır
+    if (this.languageChangeListener) {
+      window.removeEventListener('languageChanged', this.languageChangeListener);
+      window.removeEventListener('forceUpdate', this.languageChangeListener);
+    }
+
     window.addEventListener('viewStateChanged', () => {
       this.updateView();
     });
@@ -32,6 +41,15 @@ export class PlanManagerComponent {
     window.addEventListener('planDataChanged', () => {
       this.updateView();
     });
+
+    this.languageChangeListener = () => {
+      if (this.viewStateHook.currentView === ViewState.PlanManager) {
+        this.updateView();
+      }
+    };
+
+    window.addEventListener('languageChanged', this.languageChangeListener);
+    window.addEventListener('forceUpdate', this.languageChangeListener);
   }
 
   private async updateView(): Promise<void> {
@@ -40,7 +58,7 @@ export class PlanManagerComponent {
     }
 
     const currentView = this.viewStateHook.currentView;
-    
+
     if (currentView !== ViewState.PlanManager) {
       this.containerElement.style.display = 'none';
       return;
@@ -64,15 +82,17 @@ export class PlanManagerComponent {
     if (sortedPlans.length === 0) {
       return `
         <div class="plan-manager-container">
-          <h2 class="view-title">Plan Yönetimi</h2>
+          <h2 class="view-title">${this.i18n.t('planManager.title')}</h2>
           <div class="empty-state">
-            <p>Henüz plan oluşturulmamış.</p>
-            <button class="menu-button" data-action="newPlan">
-              Yeni Plan Oluştur
-            </button>
-            <button class="menu-button back-button" data-action="back">
-              ← Geri
-            </button>
+            <p>${this.i18n.t('planManager.noPlansCreated')}</p>
+            <div class="empty-state-actions">
+              <button class="menu-button" data-action="newPlan">
+                ${this.i18n.t('planManager.newPlan')}
+              </button>
+              <button class="menu-button back-button" data-action="back">
+                ${this.i18n.t('common.back')}
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -82,16 +102,16 @@ export class PlanManagerComponent {
 
     return `
       <div class="plan-manager-container">
-        <h2 class="view-title">Plan Yönetimi</h2>
+        <h2 class="view-title">${this.i18n.t('planManager.title')}</h2>
         <div class="plans-list">
           ${plansHTML}
         </div>
         <div class="plan-manager-actions">
           <button class="menu-button" data-action="newPlan">
-            + Yeni Plan Oluştur
+            ${this.i18n.t('planManager.newPlan')}
           </button>
           <button class="menu-button back-button" data-action="back">
-            ← Geri
+            ${this.i18n.t('common.back')}
           </button>
         </div>
       </div>
@@ -99,15 +119,15 @@ export class PlanManagerComponent {
   }
 
   private generatePlanCardHTML(plan: Plan): string {
-    const statusBadge = plan.isCompleted 
-      ? '<span class="status-badge completed">Tamamlandı</span>'
-      : plan.isActive 
-        ? '<span class="status-badge active">Aktif</span>'
-        : '<span class="status-badge inactive">Pasif</span>';
+    const statusBadge = plan.isCompleted
+      ? `<span class="status-badge completed">${this.i18n.t('planManager.status.completed')}</span>`
+      : plan.isActive
+        ? `<span class="status-badge active">${this.i18n.t('planManager.status.active')}</span>`
+        : `<span class="status-badge inactive">${this.i18n.t('planManager.status.inactive')}</span>`;
 
-    const lastOpenedText = plan.lastOpenedAt 
-      ? `Son açılış: ${this.formatDate(plan.lastOpenedAt)}`
-      : 'Henüz açılmadı';
+    const lastOpenedText = plan.lastOpenedAt
+      ? `${this.i18n.t('planManager.lastOpenedPrefix')} ${this.formatDate(plan.lastOpenedAt)}`
+      : this.i18n.t('planManager.neverOpened');
 
     return `
       <div class="plan-card" data-plan-id="${plan.id}">
@@ -118,28 +138,28 @@ export class PlanManagerComponent {
         <div class="plan-card-body">
           <p class="plan-card-info plan-card-week">${plan.weekName}</p>
           ${plan.description ? `<p class="plan-card-description">${plan.description}</p>` : ''}
-          <p class="plan-card-info">Oluşturulma: ${this.formatDate(plan.createdAt)}</p>
+          <p class="plan-card-info">${this.i18n.t('planManager.createdPrefix')} ${this.formatDate(plan.createdAt)}</p>
           <p class="plan-card-info">${lastOpenedText}</p>
         </div>
         <div class="plan-card-actions">
           ${!plan.isActive && !plan.isCompleted ? `
             <button class="plan-action-button activate" data-action="activate" data-plan-id="${plan.id}">
-              Aktif Et
+              ${this.i18n.t('planManager.actions.activate')}
             </button>
           ` : ''}
           ${plan.isActive && !plan.isCompleted ? `
             <button class="plan-action-button edit" data-action="edit" data-plan-id="${plan.id}">
-              Düzenle
+              ${this.i18n.t('planManager.actions.edit')}
             </button>
             <button class="plan-action-button deactivate" data-action="deactivate" data-plan-id="${plan.id}">
-              Pasif Yap
+              ${this.i18n.t('planManager.actions.deactivate')}
             </button>
             <button class="plan-action-button complete" data-action="complete" data-plan-id="${plan.id}">
-              Tamamla
+              ${this.i18n.t('planManager.actions.complete')}
             </button>
           ` : ''}
           <button class="plan-action-button delete" data-action="delete" data-plan-id="${plan.id}">
-            Sil
+            ${this.i18n.t('planManager.actions.delete')}
           </button>
         </div>
       </div>
@@ -171,7 +191,7 @@ export class PlanManagerComponent {
         const target = event.target as HTMLElement;
         const action = target.getAttribute('data-action');
         const planId = target.getAttribute('data-plan-id');
-        
+
         if (planId) {
           await this.handlePlanAction(action || '', planId);
         }
@@ -190,17 +210,17 @@ export class PlanManagerComponent {
           this.viewStateHook.navigateToPlanEditor(planId);
           break;
         case 'deactivate':
-          if (confirm('Bu planı pasif duruma getirmek istediğinize emin misiniz?')) {
+          if (confirm(this.i18n.t('planManager.deactivateConfirm'))) {
             await this.planHook.setPlanInactive(planId);
           }
           break;
         case 'complete':
-          if (confirm('Bu planı tamamlandı olarak işaretlemek istediğinize emin misiniz?')) {
+          if (confirm(this.i18n.t('planManager.completeConfirm'))) {
             await this.planHook.setPlanCompleted(planId);
           }
           break;
         case 'delete':
-          if (confirm('Bu planı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+          if (confirm(this.i18n.t('planManager.deleteConfirm'))) {
             await this.planHook.deletePlan(planId);
           }
           break;
@@ -209,12 +229,13 @@ export class PlanManagerComponent {
       }
     } catch (error) {
       console.error(`Error handling plan action ${action}:`, error);
-      alert('İşlem sırasında bir hata oluştu');
+      alert(this.i18n.t('planManager.actionError'));
     }
   }
 
   private formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('tr-TR', {
+    const locale = this.i18n.getLanguage() === 'tr' ? 'tr-TR' : 'en-US';
+    return new Intl.DateTimeFormat(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -227,14 +248,14 @@ export class PlanManagerComponent {
     // Aktif plan sayısını kontrol et
     const allPlans = await this.planHook.getAllPlans();
     const activePlans = allPlans.filter(plan => plan.isActive && !plan.isCompleted);
-    
+
     // Settings'ten maksimum aktif plan sayısını al
-    const settingsAPI = (window.electronAPI as { 
-      settings?: { 
-        getMaxActivePlans: () => Promise<number> 
-      } 
+    const settingsAPI = (window.electronAPI as {
+      settings?: {
+        getMaxActivePlans: () => Promise<number>
+      }
     }).settings;
-    
+
     if (!settingsAPI) {
       throw new Error('Settings API not available');
     }
@@ -244,7 +265,7 @@ export class PlanManagerComponent {
     // Limit dolmuşsa modal göster
     if (activePlans.length >= maxActivePlans) {
       const selectedPlanId = await this.showPlanSelectionModal(activePlans, maxActivePlans);
-      
+
       if (selectedPlanId === null) {
         // Kullanıcı iptal etti
         return;
@@ -265,14 +286,14 @@ export class PlanManagerComponent {
         <div class="plan-selection-modal-overlay" id="planSelectionModal">
           <div class="plan-selection-modal">
             <div class="plan-selection-modal-header">
-              <h3>Aktif Plan Limiti Dolu</h3>
+              <h3>${this.i18n.t('planManager.activePlanLimitReached')}</h3>
             </div>
             <div class="plan-selection-modal-body">
               <p class="plan-selection-warning">
-                Şu anda ${activePlans.length} aktif plan var. Maksimum aktif plan sayısı ${maxActivePlans} olarak ayarlanmış.
+                ${this.i18n.t('planManager.activePlanLimitMessage', { count: activePlans.length.toString(), limit: maxActivePlans.toString() })}
               </p>
               <p class="plan-selection-instruction">
-                Yeni planı aktif etmek için aşağıdaki listeden hangi planın yerine aktif edileceğini seçin. Veya Settings'ten maksimum aktif plan sayısını artırabilirsiniz.
+                ${this.i18n.t('planManager.activePlanLimitInstruction')}
               </p>
               <div class="plan-selection-list">
                 ${activePlans.map(plan => `
@@ -282,7 +303,7 @@ export class PlanManagerComponent {
                       <span class="plan-selection-item-week">${plan.weekName}</span>
                     </div>
                     <button class="plan-selection-select-btn" data-plan-id="${plan.id}">
-                      Bu Planı Seç
+                      ${this.i18n.t('planManager.selectThisPlan')}
                     </button>
                   </div>
                 `).join('')}
@@ -290,7 +311,7 @@ export class PlanManagerComponent {
             </div>
             <div class="plan-selection-modal-footer">
               <button class="plan-selection-cancel-btn" id="planSelectionCancel">
-                İptal
+                ${this.i18n.t('common.cancel')}
               </button>
             </div>
           </div>

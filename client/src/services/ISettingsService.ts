@@ -1,4 +1,4 @@
-import { AppSettings } from '../models/AppSettings';
+import { AppSettings, SupportedLanguage } from '../models/AppSettings';
 
 export interface ISettingsService {
   getSettings(): Promise<AppSettings>;
@@ -7,5 +7,7 @@ export interface ISettingsService {
   setMaxActivePlans(maxActivePlans: number): Promise<void>;
   getIsFullScreen(): Promise<boolean>;
   setIsFullScreen(isFullScreen: boolean): Promise<void>;
+  getLanguage(): Promise<SupportedLanguage>;
+  setLanguage(language: SupportedLanguage): Promise<void>;
 }
 
